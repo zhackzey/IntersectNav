@@ -1,8 +1,9 @@
 import glob
-import math
 import os
-import random
 import sys
+import random
+import math
+import numpy as np
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -15,7 +16,7 @@ except IndexError:
 import carla
 
 from env.utils import CrossingRate, SafyDis, get_angle
-from env.utils import INSIDE, get_area, get_PED_area, get_intention, get4areas
+from env.utils import INSIDE, get_area, get_PED_area, get_intention, draw_area,get4areas, get_distance_to_area
 
 
 class Vehicles:
@@ -29,29 +30,45 @@ class Vehicles:
         self.number = scene['NumOfVeh']
         self.bps = self.world.get_blueprint_library().filter('vehicle.*.*')
         self.bps = [x for x in self.bps if int(x.get_attribute('number_of_wheels')) == 4]
+        self.bps = [x for x in self.bps if not x.id.endswith('isetta')]
+        self.bps = [x for x in self.bps if not x.id.endswith('carlacola')]
 
         self.spawns = self.world.get_map().get_spawn_points()
         self.spawns = [x for x in self.spawns if self.ego_car.start.location.distance(x.location) > SafyDis]
 
         self.AREA = get_area(self.scene)
 
-        inner_spawns = [x for x in self.spawns if INSIDE(x.location, self.AREA)]
-        outer_spawns = [x for x in self.spawns if not INSIDE(x.location, self.AREA)]
-        density = random.randint(self.number[0], self.number[1]) / len(inner_spawns)
-
+        spawn_num = random.randint(self.number[0], self.number[1])
+        print(f"Scene configuration: min vehicles {self.number[0]}, max vehicles {self.number[1]}, spawn_num {spawn_num}")
         self.vehicles = []
-        self.generate_vehicles(inner_spawns, round(density * len(inner_spawns)))
-        self.generate_vehicles(outer_spawns, round(density * len(outer_spawns)))
-
+        self.spawns_with_distance = [(x, get_distance_to_area(x.location, self.AREA)) for x in self.spawns]
+        self.spawns_with_distance = sorted(self.spawns_with_distance, key=lambda x: x[1])
+        if spawn_num > 0:
+            self.generate_vehicles(self.spawns_with_distance, spawn_num)
         self.world.tick()
 
     def generate_vehicles(self, spawns, total):
-        random.shuffle(spawns)
-
-        for i in range(total):
+        cnt = 0
+        ego_forward_vector = self.ego_car.vehicle.get_transform().get_forward_vector()
+        ego_forward_vec = np.array([ego_forward_vector.x, ego_forward_vector.y])
+        ego_forward_vec = ego_forward_vec / np.linalg.norm(ego_forward_vec)
+        for i in range(len(spawns)):
             bp = random.choice(self.bps)
-            vehicle = self.world.spawn_actor(bp, spawns[i])
+            if spawns[i][1] < 15:
+                continue
+            spawn_forward_vector = spawns[i][0].get_forward_vector()
+            spawn_forward_vec = np.array([spawn_forward_vector.x, spawn_forward_vector.y])
+            spawn_forward_vec = spawn_forward_vec / np.linalg.norm(spawn_forward_vec)
+            if np.dot(ego_forward_vec, spawn_forward_vec) < 0:
+                d_angle = math.degrees(math.acos(np.clip(np.dot(ego_forward_vec, spawn_forward_vec), -1., 1.)))
+                if d_angle > 150:
+                    if spawns[i][1] < 30:
+                        continue
+            vehicle = self.world.spawn_actor(bp, spawns[i][0])
             self.vehicles.append(vehicle)
+            cnt += 1
+            if cnt >= total:
+                break
 
     def start(self):
         for x in self.vehicles:
@@ -67,7 +84,6 @@ class Vehicles:
     def destroy(self):
         self.client.apply_batch([carla.command.DestroyActor(x) for x in self.vehicles])
         self.vehicles = []
-
 
 class Walkers:
 

@@ -2,16 +2,19 @@
 
 Repository to store the IntersectNav Benchmark for CARLA driving simulator. The agent needs to navigate through dense intersections and interact with pedestrians at crosswalks.
 ### Refer to the [video](http://www.poss.pku.edu.cn/OpenDataResource/IntersectionNav2022/video.mp4) associated with our paper for more information.
-### Here is an alternative [URL](https://drive.google.com/file/d/1NZyRRMsLFZ4ejQZhcd1DFIBUt1izzj0p/view?usp=sharing). 
+### Here is an alternative [URL](https://drive.google.com/file/d/1aOxXJjW3VBvd-55Hip42yPtk1lSCp7Hx/view?usp=sharing). 
 ## Requirements
 
 ### Installation of CARLA simulator
 
 CARLA simulator is in active development with many versions. Click here for its [official repository]( https://github.com/carla-simulator/carla) . 
 
-**Although any versions above 0.9.7 is compatible with our benchmark in principle, we suggest use of version 0.9.7 for consistence.**
+In our experiments, the interaction with only pedestrians scenarios is simulated in CARLA 0.9.7, while interaction with both pedestrians and environmental vehicles is simulated in CARLA 0.9.12.
 
-A detailed installation of CARLA simulator 0.9.7 is available at its [official documentation](https://carla.readthedocs.io/en/0.9.7/how_to_build_on_linux/) . For any issues occurred during the installation, please refer to the official guidelines and F.A.Qs.
+**This benchmark supports two versions or CARLA. Although any versions above 0.9.7 is compatible with our benchmark in principle, we suggest use of version 0.9.7 and 0.9.12 for consistence.**
+
+A detailed installation of CARLA simulator 0.9.7 and 0.9.12 is available at the official documentation [CARLA 0.9.7](https://carla.readthedocs.io/en/0.9.7/how_to_build_on_linux/) and [CARLA 0.9.12](https://carla.readthedocs.io/en/0.9.12/start_quickstart/).
+For any issues occurred during the installation, please refer to the official guidelines and F.A.Qs.
 
 ### Installation of python packages
 
@@ -33,7 +36,7 @@ conda activate carla97
 
 ## Benchmark Configuration
 
-Our benchmark can be easily configured in python script [configer.py](env/configer.py)
+Our benchmark can be easily configured in python script [configer.py](env/configer.py), [scenes_97.py](env/scenes_97.py), [scenes_912.py](env/scenes_912.py)
 
 #### Tasks
 
@@ -89,9 +92,9 @@ For now, following sensors are available.
 
 ## Protocol & Evaluation
 
-For each intersection, we configure the ego vehicle's available initial locations and corresponding goal locations, which contain different lanes and directions around the intersection. The initial heading is always towards the intersection. The benchmark adopts an episodic setup. At each episode, one of the intersections is selected and the ego car randomly starts from one of the available configurations. Three tasks, i.e., performing left turn/go straight/right turn and navigate through the intersection need to be completed. Meanwhile, a random number of 20-30 pedestrians are generated to walk through the crosswalks  around intersections. All available routes for these intersections add up to about 40. Our settings ensure that the driving agent will inevitably encounter pedestrians during the course of turning. Although only pedestrians are considered in current settings, our benchmark can be easily extended to consider other vehicles, traffic lights and signs, etc.
+For each intersection, we configure the ego vehicle's available initial locations and corresponding goal locations, which contain different lanes and directions around the intersection. The initial heading is always towards the intersection. The benchmark adopts an episodic setup. At each episode, one of the intersections is selected and the ego car randomly starts from one of the available configurations. Three tasks, i.e., performing left turn/go straight/right turn and navigate through the intersection need to be completed. Meanwhile, a random number of 20-30 pedestrians are generated to walk through the crosswalks  around intersections. Apart from pedestrians, the simulation environment can be configured to introduce environmental vehicles. In each episode, a random number of 6-15 environmental vehicles are generated at random spawn points around the intersection area, which are controlled by CARLA built-in autopilot agents. All available routes for these intersections add up to about 40.
 
-During the close-loop simulation for evaluation, the ego agent and pedestrians are initialized according to above protocols. 
+During the close-loop simulation for evaluation, the ego agent, pedestrians and environmental vehicles (optional) initialized according to above protocols. 
 
  Then the network predicted values are clipped by the range $[-1.0, 1.0]$ and passed to the actuator in CARLA simulation, which simulates the world's dynamics and move on to the next step. This process iterates until an episode is done. We record the outcomes and metrics as follows.
 
@@ -102,7 +105,6 @@ The metrics are made to evaluate the driving performance for different considera
 - **Timeout**: Failure to arrive at the goal point within limited time steps (set to 1000).
 - **Lane Invasion**: The number of illegal lane invasions (e.g. drift onto the opposite lanes) exceeds 5.
 - **Collision**:Once the agent collides into any object (pedestrians or obstacles), it is considered as a collision.
-- **Poor End Pose**: This considers the case that although the agent approaches the ending position, its' heading's deviation from lane direction is more than 15 degrees or its' vertical deviation from lane centerline exceeds 1 meter. These thresholds put forward higher requirements for the model's control precision. One can view this outcome as a sub-optimal "success''.
 - **Success**: We only consider one episode as a success when the agent arrives at the goal without any of the above conditions triggered. 
 
 The ratios of above outcomes are calculated. For example:
@@ -195,10 +197,15 @@ python evaluate.py --scenes 0 1 --control_agent NN --model_path path_to_model_ck
 
 ## Human Demonstration Data
 
-We collected human driving data under this benchmark's scenarios, which contains about 800 trajectories on six scenes. For more details, please refer to our paper.
+We collected two human driving datasets named **Ped-Only** and **Ped-Veh** under this benchmark's scenarios. For more details, please refer to our paper.
+
+**Ped-Only**: over 950 trajectories on 6 scenes. Only pedestrians are present.
+
+**Ped-Veh**: over 300 trajectories on 2 scenes. Both pedestrians and environmental vehicles are present.
 
 [The dataset can be downloaded here](http://www.poss.pku.edu.cn/OpenDataResource/IntersectionNav2022/IntersectionNavHumanDataset.zip) 
 
+### Dataset **Ped-Only**
 The data is stored on two HDF5 files. 
 
 - scene012345_train.h5: dataset for train
@@ -247,7 +254,7 @@ python read_data.py --help
 If you use our benchmark, please cite our paper below.
 
 Refer to the [video](http://www.poss.pku.edu.cn/OpenDataResource/IntersectionNav2022/video.mp4) associated with our paper for more information.
-Here is an alternative [URL](https://drive.google.com/file/d/1NZyRRMsLFZ4ejQZhcd1DFIBUt1izzj0p/view?usp=sharing). 
+Here is an alternative [URL](https://drive.google.com/file/d/1aOxXJjW3VBvd-55Hip42yPtk1lSCp7Hx/view?usp=sharing). 
 
 Zeyu, Zhu and Huijing, Zhao. [[PDF](https://arxiv.org/pdf/2202.10124)]
 ```

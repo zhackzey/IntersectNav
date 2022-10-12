@@ -1,9 +1,8 @@
 import glob
-import math
 import os
-import random
 import sys
-
+import math
+import random
 import numpy as np
 
 try:
@@ -15,13 +14,16 @@ except IndexError:
     pass
 
 import carla
+import copy
 
 from env.sensors import camera_list, CameraSensor, CollisionSensor, LaneInvasionSensor
-from env.utils import get_closet_wp
+from env.utils import draw_waypoint_union, get_closet_wp, get_polygan
 
 from env.PID.agent.basic_agent import BasicAgent
 from env.PID.planner.local_planner import RoadOption
 from env.SteeringWheel import steeringwheel
+from env.configer import CARLA_VERSION
+from env.PID.agent.utils import get_angle
 
 
 class EgoCar:
@@ -72,49 +74,62 @@ class EgoCar:
         self.sensors.append(CollisionSensor(self.world, self.vehicle, 'Collision'))
         self.sensors.append(LaneInvasionSensor(self.world, self.vehicle, 'LaneInvasion'))
 
-    def step(self, control, lateral, longitude, debug=False):
+    def step(self, control, lateral, longitude):
         # change traffic light green
-        lights_list = self.world.get_actors().filter("*traffic_light*")
-        for light in lights_list:
-            light.set_state(carla.TrafficLightState.Green)
-
-        # control
+        if CARLA_VERSION == '0.9.7':
+            lights_list = self.world.get_actors().filter("*traffic_light*")
+            for light in lights_list:
+                light.set_state(carla.TrafficLightState.Green)
+        elif self.vehicle.is_at_traffic_light():
+            traffic_light = self.vehicle.get_traffic_light()
+            if traffic_light.get_state() == carla.TrafficLightState.Red:
+                traffic_light.set_state(carla.TrafficLightState.Green)
+                traffic_light.freeze(True)
+        else:
+            pass
+        # control to be applied of ego agent
         self.control = control
-        auto_control = self.agent.run_step(debug=False)
+        # get control of PID and human
+        manual_control = PID_control = self.agent.run_step(debug=False)
         if self.manual_device:
             manual_control = self.steeringWheel.get_control()
-        if longitude == 'manual' and lateral == 'manual':
-            self.control = manual_control
-            if random.randint(0, 10) == 0:
-                self.control.steer = np.clip(self.control.steer + random.uniform(-0.2, 0.2), -1., 1.)
-
-        if lateral == 'PID' or lateral == 'PID_NOISE':
-            self.control.steer = auto_control.steer
-
-        if longitude == 'PID':
-            self.control.throttle = auto_control.throttle
-            self.control.brake = auto_control.brake
-
-        if lateral == 'PID_NOISE':  # add noise when collecting data 
-            noise_control = self.control
-
-            if random.randint(0, 10) == 0:  # 1/10 probability
-                noise_control.steer = np.clip(self.control.steer + random.uniform(-0.2, 0.2), -1., 1.)
-
-            self.vehicle.apply_control(noise_control)
+        # change lateral control according to lateral tag
+        if lateral.startswith('PID'):
+            # PID
+            self.control.steer = PID_control.steer
+        elif lateral.startswith('manual'):
+            # manual
+            self.control.steer = manual_control.steer
         else:
-            self.vehicle.apply_control(self.control)
+            # NN
+            pass
+        # change longitude control according to longitude tag
+        if longitude.startswith('PID'):
+            # PID
+            self.control.throttle, self.control.brake = PID_control.throttle, PID_control.brake
+        elif longitude.startswith('manual'):
+            # manual
+            self.control.throttle, self.control.brake = manual_control.throttle, manual_control.brake
+        else:
+            # NN
+            pass
 
-        if debug:
-            print("Control: ", self.control.steer, self.control.throttle - self.control.brake)
+        self.vehicle.apply_control(self.control)
 
-    def get_auto_control(self):
-        lights_list = self.world.get_actors().filter("*traffic_light*")
-        for light in lights_list:
-            light.set_state(carla.TrafficLightState.Green)
-
-        control = self.agent.run_step(debug=False)
-        return [control.steer, control.throttle, control.brake]
+    def get_pid_control(self):
+        if CARLA_VERSION == '0.9.7':
+            lights_list = self.world.get_actors().filter("*traffic_light*")
+            for light in lights_list:
+                light.set_state(carla.TrafficLightState.Green)
+        elif self.vehicle.is_at_traffic_light():
+            traffic_light = self.vehicle.get_traffic_light()
+            if traffic_light.get_state() == carla.TrafficLightState.Red:
+                traffic_light.set_state(carla.TrafficLightState.Green)
+                traffic_light.freeze(True)
+        else:
+            pass
+        PID_control = self.agent.run_step(debug=False)
+        return [PID_control.steer, PID_control.throttle, PID_control.brake]
 
     def get_sensors(self, frame0, debug=False):
         data = {sensor.name: sensor.get_data(frame0) for sensor in self.sensors}
@@ -129,7 +144,9 @@ class EgoCar:
 
         dx = self.end.location.x - current.location.x
         dy = self.end.location.y - current.location.y
-        data['angle_diff'] = math.radians(math.degrees(math.atan2(dy, dx)) - current.rotation.yaw)
+        fwd = current.get_forward_vector()
+        # data['angle_diff'] = math.radians(math.degrees(math.atan2(dy, dx)) - current.rotation.yaw)
+        data['angle_diff'] = get_angle([dy, dx], [fwd.y, fwd.x])
 
         tot_x = self.end.location.x - self.start.location.x
         tot_y = self.end.location.y - self.start.location.y
@@ -148,7 +165,7 @@ class EgoCar:
         for i in range(len(self.path)):
             if self.path[i][0] == neighbor_wp:
                 rule_control = self.get_auto_control()
-                if self.path[i][0] in [RoadOption.LEFT, RoadOption.RIGHT, RoadOption.STRAIGHT]:
+                if self.path[i][1] in [RoadOption.LEFT, RoadOption.RIGHT, RoadOption.STRAIGHT]:
                     lat_cmd = lat_cmd_dict[self.path[i][1]]
                 else:
                     if rule_control[0] > self.param['steer_right']:
@@ -156,7 +173,7 @@ class EgoCar:
                     elif rule_control[0] < self.param['steer_left']:
                         lat_cmd = 1
                     else:
-                        lat_cmd = 0
+                        lat_cmd = lat_cmd_dict[self.path[i][1]]
                 if rule_control[1] - rule_control[2] < self.param['acc_decrease']:
                     lon_cmd = 0
                 elif rule_control[1] - rule_control[2] < self.param['acc_maintain']:

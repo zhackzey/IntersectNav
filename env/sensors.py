@@ -1,9 +1,8 @@
 import glob
-import math
 import os
-import queue
 import sys
-
+import math
+import queue
 import numpy as np
 
 try:
@@ -18,28 +17,36 @@ import carla
 from carla import ColorConverter as cc
 
 from env.utils import FPS
+from env.configer import CARLA_VERSION
 
 camera_list = [
     {
         'name': 'Lidar',
         'type': 'sensor.lidar.ray_cast',
-        'range': 40.0,
+        'range' : 40.0,
         'channels': 1,
         'upper_fov': 0.0,
         'lower_fov': 0.0,
         'rotation_frequency': float(FPS),
-        'points_per_second': FPS * 360 * 4,
-        'pos': carla.Transform(carla.Location(x=1.7, z=1.12)),
+        'points_per_second': FPS*360*4,
+        'pos' : carla.Transform(carla.Location(x=1.7, z=1.12)),
         'convertor': None
     },
     {
-        'name': 'FrontRGB',
-        'type': 'sensor.camera.rgb',
-        'width': 1500,
-        'height': 650,
-        'fov': 140.0,
-        'pos': carla.Transform(carla.Location(x=1.0, z=1.6)),
-        'convertor': cc.Raw,
+       'name': 'FrontRGB',
+       'type': 'sensor.camera.rgb',
+       'width' : 1500,
+       'height' : 650,
+       'fov': 140.0,
+       'pos' : carla.Transform(carla.Location(x=1.0, z=1.6)),
+       'convertor': cc.Raw,
+        # 'camera_exposure_mode': 'manual',
+        # 'shutter_speed': 3000
+        'iso': 100.0,
+        "exposure_mode": "histogram",
+        "exposure_compensation": 0.0,
+        "exposure_min_bright": 10.0,
+        "exposure_max_bright": 12.0,
     }
 ]
 
@@ -59,6 +66,17 @@ class CameraSensor:
             bp.set_attribute("image_size_x", str(self.width))
             bp.set_attribute("image_size_y", str(self.height))  # set resolution
             bp.set_attribute("fov", str(self.fov))
+            # 'iso': 100.0,
+            # "exposure_mode": "histogram",
+            # "exposure_compensation": -1.0,
+            # "exposure_min_bright": 7.0,
+            # "exposure_max_bright": 9.0,
+            if self.type.endswith('rgb') and CARLA_VERSION == '0.9.12':
+                bp.set_attribute('iso', str(camera['iso']))
+                bp.set_attribute('exposure_mode', str(camera['exposure_mode']))
+                bp.set_attribute('exposure_compensation', str(camera['exposure_compensation']))
+                bp.set_attribute('exposure_min_bright', str(camera['exposure_min_bright']))
+                bp.set_attribute('exposure_max_bright', str(camera['exposure_max_bright']))
 
         elif self.type.startswith('sensor.lidar'):
             bp.set_attribute('range', str(camera['range']))
@@ -88,10 +106,16 @@ class CameraSensor:
 
         elif self.type.startswith('sensor.lidar'):
             points = np.frombuffer(event.raw_data, dtype=np.dtype('f4'))
-            points = np.reshape(points, (int(points.shape[0] / 3), 3))
+            if CARLA_VERSION == '0.9.7':
+                points = np.reshape(points, (int(points.shape[0] / 3), 3))
+            elif CARLA_VERSION == '0.9.12':
+                points = np.reshape(points, (int(points.shape[0] / 4), 4))
+            else:
+                raise NotImplementedError
             return points, event.transform
 
     def destroy(self):
+        self.sensor.stop()
         self.sensor.destroy()
 
 
@@ -129,6 +153,7 @@ class CollisionSensor:
         return (self.history, self.other_actor)
 
     def destroy(self):
+        self.sensor.stop()
         self.sensor.destroy()
 
 
@@ -157,4 +182,5 @@ class LaneInvasionSensor:
         return set(x.type for x in event.crossed_lane_markings)
 
     def destroy(self):
+        self.sensor.stop()
         self.sensor.destroy()

@@ -7,16 +7,14 @@
 waypoints and avoiding other vehicles.
 The agent also responds to traffic lights. """
 
-import math
-import sys
 from enum import Enum
 
 import carla
-
+import sys
+import math
 sys.path.append('..')
 from ..tools.misc import is_within_distance_ahead, compute_magnitude_angle
 from .utils import get_vec_dist, get_angle
-
 
 class AgentState(Enum):
     """
@@ -59,8 +57,7 @@ class Agent(object):
             'v_dist_thres': 20,  # Distance Threshold Vehicle
             'v_angle_thres': 0.40  # Angle Threshold Vehicle
 
-        }
-
+        }       
     def run_step(self, debug=False):
         """
         Execute one step of navigation.
@@ -170,7 +167,7 @@ class Agent(object):
 
         return (False, None)
 
-    def _is_vehicle_hazard(self, vehicle_list, next_waypoint):
+    def _is_vehicle_hazard(self, vehicle_list,next_waypoint):
         """
         Check if a given vehicle is an obstacle in our way. To this end we take
         into account the road and lane the target vehicle is on and run a
@@ -188,23 +185,22 @@ class Agent(object):
                  - vehicle is the blocker object itself
                  -speed factorv for control speed(if no obstacles,speed_factor=1)
         """
-
+        
         ego_vehicle_location = self._vehicle.get_location()
         ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
-        speed_factor = 1.0
-        block_vehicle = None
+        speed_factor=1.0
+        block_vehicle=None
         if next_waypoint is None:
-            return (False, None, speed_factor)
-        # wp_vector/wp_dis:vector/distance from current waypoint to next target waypoint
-        # print("Now in _is_vehicle_hazard")
-        wp_vector, wp_dis = get_vec_dist(next_waypoint.transform.location.x, next_waypoint.transform.location.y,
-                                         ego_vehicle_location.x, ego_vehicle_location.y)
-        # print("wp_vector, wp_dis:", wp_vector, wp_dis)
-        # print("vehicle_list length:",len(vehicle_list))
-
+            return (False, None,speed_factor)
+        #wp_vector/wp_dis:vector/distance from current waypoint to next target waypoint
+        #print("Now in _is_vehicle_hazard")
+        wp_vector,wp_dis= get_vec_dist(next_waypoint.transform.location.x,next_waypoint.transform.location.y,ego_vehicle_location.x,ego_vehicle_location.y)
+        #print("wp_vector, wp_dis:", wp_vector, wp_dis)
+        #print("vehicle_list length:",len(vehicle_list))
+        
         for target_vehicle in vehicle_list:
             # do not account for the ego vehicle
-            speed_factor_tmp = 1.0
+            speed_factor_tmp=1.0
             if target_vehicle.id == self._vehicle.id:
                 continue
 
@@ -215,34 +211,33 @@ class Agent(object):
                     target_vehicle_waypoint.lane_id != ego_vehicle_waypoint.lane_id:
                 continue
             '''
-            # print('target road id, lane id:',target_vehicle_waypoint.road_id, target_vehicle_waypoint.lane_id)
-            # print('ego road id, lane id:',ego_vehicle_waypoint.road_id,ego_vehicle_waypoint.lane_id)
+            #print('target road id, lane id:',target_vehicle_waypoint.road_id, target_vehicle_waypoint.lane_id)
+            #print('ego road id, lane id:',ego_vehicle_waypoint.road_id,ego_vehicle_waypoint.lane_id)
 
-            # check whether ego_vehicle needs to change speed_factor,if more than one vehicle blocks,choose the nearest
-            speed_factor_tmp = self.stop_vehicle(ego_vehicle_location, target_vehicle.get_location(), wp_vector)
-            # print("speed_factor_tmp: ", speed_factor_tmp)
+            #check whether ego_vehicle needs to change speed_factor,if more than one vehicle blocks,choose the nearest
+            speed_factor_tmp=self.stop_vehicle(ego_vehicle_location,target_vehicle.get_location(),wp_vector)
+            #print("speed_factor_tmp: ", speed_factor_tmp)
             if speed_factor > speed_factor_tmp:
-                speed_factor = speed_factor_tmp
-                block_vehicle = target_vehicle
-        # print("speed_factor: {}".format(speed_factor))
-        if speed_factor < 1.0:
-            return (True, block_vehicle, speed_factor)
+                speed_factor=speed_factor_tmp
+                block_vehicle=target_vehicle
+        #print("speed_factor: {}".format(speed_factor))
+        if speed_factor<1.0:
+            return (True,block_vehicle,speed_factor)
         else:
-            return (False, None, speed_factor)
+            return (False, None,speed_factor)
 
-    def _is_pedestrian_hazard(self, pedestrians_list, next_waypoint):
+    def _is_pedestrian_hazard(self, pedestrians_list,next_waypoint):
 
         ego_vehicle_location = self._vehicle.get_location()
         ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
-        speed_factor = 1
-        block_pedestrian = None
+        speed_factor=1
+        block_pedestrian=None
         if next_waypoint is None:
-            return (False, None, speed_factor)
-        # wp_vector/wp_dis:vector/distance from current waypoint to next target waypoint
-        wp_vector, wp_dis = get_vec_dist(next_waypoint.transform.location.x, next_waypoint.transform.location.y,
-                                         ego_vehicle_location.x, ego_vehicle_location.y)
+            return (False, None,speed_factor)
+        #wp_vector/wp_dis:vector/distance from current waypoint to next target waypoint
+        wp_vector,wp_dis= get_vec_dist(next_waypoint.transform.location.x,next_waypoint.transform.location.y,ego_vehicle_location.x,ego_vehicle_location.y)
         for pedestrian in pedestrians_list:
-            speed_factor_tmp = 1.0
+            speed_factor_tmp=1.0
             # if the object is not in our lane it's not an obstacle
             pedestrian_waypoint = self._map.get_waypoint(pedestrian.get_location())
             '''
@@ -250,15 +245,15 @@ class Agent(object):
                     pedestrian_waypoint.lane_id != ego_vehicle_waypoint.lane_id:
                 continue
             '''
-            # check whether ego_vehicle needs to change speed_factor,if more than one pedestrian blocks,choose the nearest
-            speed_factor_tmp = self.stop_pedestrian(ego_vehicle_location, pedestrian.get_location(), wp_vector)
-            if speed_factor > speed_factor_tmp:
-                speed_factor = speed_factor_tmp
-                block_pedestrian = pedestrian
-        if speed_factor < 1.0:
-            return (True, block_pedestrian, speed_factor)
+            #check whether ego_vehicle needs to change speed_factor,if more than one pedestrian blocks,choose the nearest
+            speed_factor_tmp=self.stop_pedestrian(ego_vehicle_location,pedestrian.get_location(),wp_vector)
+            if speed_factor>speed_factor_tmp:
+                speed_factor=speed_factor_tmp
+                block_pedestrian=pedestrian
+        if speed_factor<1.0:
+            return (True, block_pedestrian,speed_factor)
         else:
-            return (False, None, speed_factor)
+            return (False, None,speed_factor)
 
     def emergency_stop(self):
         """
@@ -266,7 +261,8 @@ class Agent(object):
         :return:
         """
         control = carla.VehicleControl()
-        control.steer = 0.0
+        # control.steer = 0.0
+        control.steer = self._vehicle.get_control().steer
         control.throttle = 0.0
         control.brake = 1.0
         control.hand_brake = False
@@ -293,12 +289,12 @@ class Agent(object):
 
         """
         return math.fabs(p_angle) < self.param['p_angle_hit_thres'] and \
-               p_dist < self.param['p_dist_hit_thres']
+                    p_dist < self.param['p_dist_hit_thres']
 
     def is_pedestrian_on_near_hit_zone(self, p_dist, p_angle):
 
         return math.fabs(p_angle) < self.param['p_angle_eme_thres'] and \
-               p_dist < self.param['p_dist_eme_thres']
+                    p_dist < self.param['p_dist_eme_thres']
 
     # Main function for stopping for pedestrians
     def stop_pedestrian(self, location, pedestrian_location, wp_vector):
@@ -312,11 +308,11 @@ class Agent(object):
         if self.is_pedestrian_on_hit_zone(p_dist, p_angle):
             speed_factor_p_temp = p_dist / (
                     self.param['coast_factor'] * self.param['p_dist_hit_thres'])
-        # print("In stop pedestrian CASE 1")
+        #print("In stop pedestrian CASE 1")
         # CASE 2: Pedestrian is very close to the ego-agent
         if self.is_pedestrian_on_near_hit_zone(p_dist, p_angle):
             speed_factor_p_temp = 0
-        # print("In stop pedestrian CASE 2")
+        #print("In stop pedestrian CASE 2")
         return speed_factor_p_temp
 
     """ **********************
@@ -332,28 +328,28 @@ class Agent(object):
         v_vector, v_dist = get_vec_dist(x_agent, y_agent, location.x, location.y)
         v_angle = get_angle(v_vector, wp_vector)
 
-        # print(v_vector, v_angle)
+        #print(v_vector, v_angle)
 
         # CASE 1: Slowing down for a vehicle (Vehicle Following).
         if (-0.5 * self.param['v_angle_thres'] / self.param['coast_factor'] < v_angle <
-            self.param['v_angle_thres'] / self.param['coast_factor'] and v_dist < self.param[
-                'v_dist_thres'] * self.param['coast_factor']) or (
+                self.param['v_angle_thres'] / self.param['coast_factor'] and v_dist < self.param[
+                    'v_dist_thres'] * self.param['coast_factor']) or (
                 -0.5 * self.param['v_angle_thres'] / self.param['coast_factor'] < v_angle <
                 self.param['v_angle_thres'] and v_dist < self.param['v_dist_thres']):
             if debug:
                 print("In stop vehicle CASE 1")
             speed_factor_v_temp = v_dist / (self.param['coast_factor'] * self.param['v_dist_thres'])
             if debug:
-                print("Speed factor:", speed_factor_v_temp)
+                print("Speed factor:",speed_factor_v_temp)
         # CASE 2: Stopping completely for the lead vehicle.
         if (-0.5 * self.param['v_angle_thres'] * self.param['coast_factor'] < v_angle <
                 self.param['v_angle_thres'] * self.param['coast_factor'] and v_dist < self.param[
-                    'v_dist_thres'] / self.param['coast_factor']):
+                                                    'v_dist_thres'] / self.param['coast_factor']):
             if debug:
                 print("In stop vehicle CASE 2")
             speed_factor_v_temp = 0
             if debug:
-                print("Speed factor:", speed_factor_v_temp)
+                print("Speed factor:",speed_factor_v_temp)
 
-        # print("In stop_vehicle, computed speed factor is :", speed_factor_v_temp)
+        #print("In stop_vehicle, computed speed factor is :", speed_factor_v_temp)
         return speed_factor_v_temp

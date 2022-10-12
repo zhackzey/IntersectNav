@@ -6,13 +6,12 @@ This module provides implementation for GlobalRoutePlannerDAO
 """
 import numpy as np
 
-
 class GlobalRoutePlannerDAO(object):
     """
     This class is the data access layer for fetching data from the carla server instance for GlobalRoutePlanner
     """
 
-    def __init__(self, wmap, sampling_resolution=1):
+    def __init__(self, wmap, sampling_resolution = 1):
         """
         class constructor
 
@@ -22,7 +21,7 @@ class GlobalRoutePlannerDAO(object):
         """
         self._sampling_resolution = sampling_resolution
         self._wmap = wmap
-
+    
     def get_waypoint(self, location):
         """
         The method returns waypoint at given location
@@ -37,7 +36,7 @@ class GlobalRoutePlannerDAO(object):
         The method returns sampling resolution
 
         :return: self._sampling_resolution 
-        """
+        """    
         return self._sampling_resolution
 
     def get_topology(self):
@@ -72,6 +71,6 @@ class GlobalRoutePlannerDAO(object):
                     seg_dict['path'].append(w)
                     w = w.next(self._sampling_resolution)[0]
             else:
-                seg_dict['path'].append(wp1.next(self._sampling_resolution / 2.0)[0])
+                seg_dict['path'].append(wp1.next(self._sampling_resolution/2.0)[0])
             topology.append(seg_dict)
-        return topology
+        return topology            

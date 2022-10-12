@@ -1,10 +1,13 @@
 import glob
 import os
 import sys
-from collections import OrderedDict
-
+import random
 import numpy as np
+import math as m
+import csv
+
 from PIL import Image
+from collections import OrderedDict
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -18,9 +21,10 @@ import carla
 
 from env.ego_car import EgoCar
 from env.surroundings import Vehicles, Walkers
-
+from env.configer import *
+import queue
 from env.utils import Waypoints, get_weather, get_area, INSIDE, get_task_type
-from env.utils import FPS, render_LIDAR, pre_process_lidar
+from env.utils import FPS, draw_area, render_LIDAR, pre_process_lidar
 
 import signal
 from contextlib import contextmanager
@@ -45,7 +49,7 @@ def time_limit(seconds):
 class Env:
 
     def __init__(self, port, debug=False, town='Town03'):
-        print('# Initializing Env')
+        print('# Initializing Env 0.9.7')
 
         self.client = carla.Client("localhost", port)  # connect to server
         self.client.set_timeout(4.0)
@@ -207,7 +211,8 @@ class Env:
 
         if len(data['LaneInvasion']) > 0:
             self.res['invasion_time'] += 1
-            if self.res['invasion_time'] >= 5:  # lane invasion for too many times
+            tolerance = 5 if self.scene['branch'] == 0 else 10
+            if self.res['invasion_time'] >= tolerance:  # lane invasion for too many times
                 done = True
                 # error = 2 # lane invasion
                 self.res['lane_invasion'] = True
@@ -226,7 +231,7 @@ class Env:
                 reward[-1] = 1  # success
 
         # Comfort
-        if abs(info['a_t'][0]) > 0.9:
+        if abs(info['a_t'][0]) > 0.4:
             self.res['total_ego_jerk'] += 1
 
         if abs(info['a_t'][1]) > 0.9:

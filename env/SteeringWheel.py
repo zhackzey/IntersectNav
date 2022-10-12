@@ -1,12 +1,14 @@
 from __future__ import print_function
 
-import glob
-import os
-import sys
 
 # ==============================================================================
 # -- find carla module ---------------------------------------------------------
 # ==============================================================================
+
+
+import glob
+import os
+import sys
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -16,6 +18,7 @@ try:
 except IndexError:
     pass
 
+
 # ==============================================================================
 # -- imports -------------------------------------------------------------------
 # ==============================================================================
@@ -23,7 +26,16 @@ except IndexError:
 
 import carla
 
+from carla import ColorConverter as cc
+
+import argparse
+import collections
+import datetime
+import logging
 import math
+import random
+import re
+import weakref
 
 if sys.version_info >= (3, 0):
 
@@ -69,6 +81,7 @@ try:
     import numpy as np
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
+
 
 
 class steeringwheel(object):
@@ -127,7 +140,8 @@ class steeringwheel(object):
         self._control.brake = brakeCmd
         self._control.throttle = throttleCmd
 
-        # toggle = jsButtons[self._reverse_idx]
+        #toggle = jsButtons[self._reverse_idx]
 
         self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
         return self._control
+    

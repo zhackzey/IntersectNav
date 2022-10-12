@@ -6,15 +6,17 @@
 waypoints and avoiding other vehicles.
 The agent also responds to traffic lights. """
 
-import sys
+
 import carla
+import sys
+
 
 sys.path.append('..')
 from ..agent.agent import Agent, AgentState
-from ..planner.local_planner import LocalPlanner, RoadOption
+from ..planner.local_planner import LocalPlanner,RoadOption
 from ..planner.global_route_planner import GlobalRoutePlanner
 from ..planner.global_route_planner_dao import GlobalRoutePlannerDAO
-
+from ..tools.misc import draw_waypoints
 
 def draw_waypoint_union(debug, w0, w1, color=carla.Color(0, 0, 255), lt=60):
     debug.draw_line(
@@ -22,7 +24,6 @@ def draw_waypoint_union(debug, w0, w1, color=carla.Color(0, 0, 255), lt=60):
         w1.transform.location + carla.Location(z=0.1),
         thickness=0.1, color=color, life_time=lt, persistent_lines=True)
     debug.draw_point(w1.transform.location + carla.Location(z=0.1), 0.1, color, lt, True)
-
 
 class BasicAgent(Agent):
     """
@@ -43,10 +44,10 @@ class BasicAgent(Agent):
             'K_P': 1,
             'K_D': 0.02,
             'K_I': 0,
-            'dt': 1.0 / 20.0}
+            'dt': 1.0/20.0}
         self._local_planner = LocalPlanner(
-            self._vehicle, opt_dict={'target_speed': target_speed,
-                                     'lateral_control_dict': args_lateral_dict})
+            self._vehicle, opt_dict={'target_speed' : target_speed,
+            'lateral_control_dict':args_lateral_dict})
         self._hop_resolution = 2.0
         self._path_seperation_hop = 2
         self._path_seperation_threshold = 0.5
@@ -55,7 +56,7 @@ class BasicAgent(Agent):
 
     def get_waypoints_buffer(self):
         return self._local_planner.get_waypoints_buffer()
-
+        
     def set_destination(self, destination, draw_navi):
         """
         This method creates a list of waypoints from agent's position to destination location
@@ -63,9 +64,9 @@ class BasicAgent(Agent):
 
         :param destination:   carla.Location object
         """
-
-        # print("vehicle start location in basic_agent.py :", self._vehicle.get_location())
-
+        
+        #print("vehicle start location in basic_agent.py :", self._vehicle.get_location())
+        
         start_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         end_waypoint = self._map.get_waypoint(destination)
 
@@ -85,12 +86,13 @@ class BasicAgent(Agent):
                     draw_waypoint_union(debug, w0, w1, color=carla.Color(255, 0, 0), lt=6000)
                 elif route_trace[i][1] == RoadOption.RIGHT:
                     draw_waypoint_union(debug, w0, w1, color=carla.Color(0, 255, 0), lt=6000)
-                elif route_trace[i][1] in [RoadOption.STRAIGHT, RoadOption.LANEFOLLOW]:
+                elif route_trace[i][1] in [RoadOption.STRAIGHT]:
                     draw_waypoint_union(debug, w0, w1, color=carla.Color(255, 255, 0), lt=6000)
                 else:
                     draw_waypoint_union(debug, w0, w1, color=carla.Color(255, 255, 255), lt=6000)
 
         return route_trace
+
 
     def _trace_route(self, start_waypoint, end_waypoint):
         """
@@ -125,17 +127,17 @@ class BasicAgent(Agent):
         actor_list = self._world.get_actors()
         vehicle_list = actor_list.filter("*vehicle*")
         lights_list = actor_list.filter("*traffic_light*")
-        pedestrians_list = actor_list.filter("*walker.pedestrian*")
+        pedestrians_list=actor_list.filter("*walker.pedestrian*")
         # check possible obstacles
-        next_waypoint = self._local_planner.get_next_waypoint()
+        next_waypoint=self._local_planner.get_next_waypoint()
 
-        # draw_waypoints(self._vehicle.get_world(), [next_waypoint], self._vehicle.get_location().z + 1.0)
-
-        # speed_factor:a discount factor of throttle
-        speed_factor = 1.0
-        # check vehicle,if any vehicle blocks the way,give a speed_factorv
-        # print("Calling self._is_vehicle_hazard")
-        vehicle_state, vehicle, speed_factorv = self._is_vehicle_hazard(vehicle_list, next_waypoint)
+        #draw_waypoints(self._vehicle.get_world(), [next_waypoint], self._vehicle.get_location().z + 1.0)
+        
+        #speed_factor:a discount factor of throttle
+        speed_factor=1.0
+        #check vehicle,if any vehicle blocks the way,give a speed_factorv
+        #print("Calling self._is_vehicle_hazard")
+        vehicle_state, vehicle,speed_factorv = self._is_vehicle_hazard(vehicle_list,next_waypoint)
         if vehicle_state:
             if debug:
                 print('!!! VEHICLE BLOCKING AHEAD [{}])'.format(vehicle.id))
@@ -144,21 +146,21 @@ class BasicAgent(Agent):
                 print("on road {} and lane {}".format(vehicle_wp.road_id, vehicle_wp.lane_id))
 
             self._state = AgentState.BLOCKED_BY_VEHICLE
-        # check pedestrian,if any pedestrian blocks the way,give a speed_factorp
+        #check pedestrian,if any pedestrian blocks the way,give a speed_factorp
 
-        # print("speed factor vehicle {}".format(speed_factorv))
+        #print("speed factor vehicle {}".format(speed_factorv))
 
-        pedestrian_state, pedestrian, speed_factorp = self._is_pedestrian_hazard(pedestrians_list, next_waypoint)
+        pedestrian_state, pedestrian,speed_factorp = self._is_pedestrian_hazard(pedestrians_list,next_waypoint)
         if pedestrian_state:
             if debug:
                 print('!!! PEDESTRAIN BLOCKING AHEAD [{}])'.format(pedestrian.id))
 
             self._state = AgentState.BLOCKED_BY_PEDESTRIAN
-        # speed_factor changes the speed gradually
-        # print("speed factor pedestrian {}".format(speed_factorp))
+        #speed_factor changes the speed gradually
+        #print("speed factor pedestrian {}".format(speed_factorp))
 
-        speed_factor = min(speed_factorp, speed_factorv)
-        # print("speed_factor {}".format(speed_factor))
+        speed_factor=min(speed_factorp,speed_factorv)
+        #print("speed_factor {}".format(speed_factor))
         # check for the state of the traffic lights
         light_state, traffic_light = self._is_light_red(lights_list)
         if light_state:
@@ -171,20 +173,20 @@ class BasicAgent(Agent):
             control = self.emergency_stop()
         else:
             # standard local planner behavior
-            control = self._local_planner.run_step(speed_factor, debug=debug)
-            # control = self._local_planner.run_step(1.0,debug=debug)
-            if speed_factor == 0:
+            control = self._local_planner.run_step(speed_factor ,debug=debug)
+            #control = self._local_planner.run_step(1.0,debug=debug)
+            if speed_factor==0:
                 if debug:
-                    print("EMERGENCY STOP BY SPEED FACTOR 0!!!!!")
-                control = self.emergency_stop()
+                    print("EMERGENCY STOP BY SPEED FACTOR 0!!!!!")   
+                control=self.emergency_stop()
             else:
                 if debug:
                     print("PID CONTROL!!!!")
-                    print("speed_factor=", speed_factor)
-                # control = self._local_planner.run_step(speed_factor ,debug=debug)
+                    print("speed_factor=",speed_factor)
+                #control = self._local_planner.run_step(speed_factor ,debug=debug)
                 self._state = AgentState.NAVIGATING
-
-        # print(control)
+            
+        #print(control)
         return control
 
     def done(self):
