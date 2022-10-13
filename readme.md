@@ -208,8 +208,11 @@ We collected two human driving datasets named **Ped-Only** and **Ped-Veh** under
 ### Dataset **Ped-Only**
 The data is stored on two HDF5 files. 
 
-- scene012345_train.h5: dataset for train
-- scene012345_test.h5: dataset for validation and test
+- PedOnly_scene012345_train.h5: dataset for train
+- PedOnly_scene012345_test.h5: dataset for validation and test
+
+### Dataset **Ped-Veh**
+The data is stored in file PedVeh_scenes01.h5.
 
 Each HDF5 contains three groups:
 
