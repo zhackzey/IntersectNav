@@ -2,7 +2,7 @@
 
 Repository to store the IntersectNav Benchmark for CARLA driving simulator. The agent needs to navigate through dense intersections and interact with pedestrians at crosswalks.
 ### Refer to the [video](http://www.poss.pku.edu.cn/OpenDataResource/IntersectionNav2022/video.mp4) associated with our paper for more information.
-### Here is an alternative [URL](https://drive.google.com/file/d/1aOxXJjW3VBvd-55Hip42yPtk1lSCp7Hx/view?usp=sharing). 
+### Here is an alternative [URL](https://drive.google.com/file/d/12G1VahVuxHutKXhnulms2aMsaeMUe1I4/view?usp=sharing). 
 ## Requirements
 
 ### Installation of CARLA simulator
@@ -255,9 +255,6 @@ python read_data.py --help
 ## Paper & Citation
 
 If you use our benchmark, please cite our paper below.
-
-Refer to the [video](http://www.poss.pku.edu.cn/OpenDataResource/IntersectionNav2022/video.mp4) associated with our paper for more information.
-Here is an alternative [URL](https://drive.google.com/file/d/1aOxXJjW3VBvd-55Hip42yPtk1lSCp7Hx/view?usp=sharing). 
 
 Zeyu, Zhu and Huijing, Zhao. [[PDF](https://arxiv.org/pdf/2202.10124)]
 ```
