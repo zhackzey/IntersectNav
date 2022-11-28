@@ -197,11 +197,13 @@ python evaluate.py --scenes 0 1 --control_agent NN --model_path path_to_model_ck
 
 ## Human Demonstration Data
 
-We collected two human driving datasets named **Ped-Only** and **Ped-Veh** under this benchmark's scenarios. For more details, please refer to our paper.
+We collected three human driving datasets named **Ped-Only**, **Ped-Veh** and **Mul-Dri** under this benchmark's scenarios. For more details, please refer to our paper.
 
-**Ped-Only**: over 950 trajectories on 6 scenes. Only pedestrians are present.
+**Ped-Only**: over 950 trajectories on 6 scenes. Only pedestrians are present. Collected from one driver.
 
-**Ped-Veh**: over 300 trajectories on 2 scenes. Both pedestrians and environmental vehicles are present.
+**Ped-Veh**: over 300 trajectories on 2 scenes. Both pedestrians and environmental vehicles are present. Collected from one driver.
+
+**Mul-Dri**: over 1500 trajectories on 6 scenes. Both pedestrians and environmental vehicles are present. Collected from ten drivers.
 
 [The dataset can be downloaded here](http://www.poss.pku.edu.cn/OpenDataResource/IntersectionNav2022/IntersectionNavHumanDataset.zip) 
 
@@ -213,6 +215,9 @@ The data is stored on two HDF5 files.
 
 ### Dataset **Ped-Veh**
 The data is stored in file PedVeh_scenes01.h5.
+
+### Dataset **Mul-Dri**
+The data is stored in ten h5 files (from d0_scene012345.h5 to d10_scene012345.h5). Each one belongs to a driver.
 
 Each HDF5 contains three groups:
 
