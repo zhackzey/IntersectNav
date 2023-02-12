@@ -116,7 +116,7 @@ class EgoCar:
 
         self.vehicle.apply_control(self.control)
 
-    def get_pid_control(self):
+    def get_auto_control(self):
         if CARLA_VERSION == '0.9.7':
             lights_list = self.world.get_actors().filter("*traffic_light*")
             for light in lights_list:
